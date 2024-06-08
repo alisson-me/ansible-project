@@ -1,0 +1,113 @@
+---
+- name: create devops group
+  hosts: datacenter
+  become: true
+  vars:
+    - newdir: projects
+    - newdir1: logs
+    - newfile1: projects/project1.txt
+    - newfile: logs/log1.txt
+
+  tasks:
+    - name: create the devops group
+      group:
+        name: devops
+        state: present
+        gid: 1765
+
+    - name: create users and add to devops group
+      user:
+        name: "{{ item.name }}"
+        state: present
+        group: devops
+        uid: "{{ item.uid }}"
+        append: yes
+      loop:
+         - { name: 'Alice', uid: '1570' }
+         - { name: 'Rob', uid: '1571'}
+         - { name: 'Charlie', uid: '1572' }
+
+    - name: Create a devops directory if it does not exist
+      file:
+        path: /root/home/devops/{{ item }}
+        state: directory
+        owner: root
+        mode: '0755'
+      with_items:
+           - newdir
+           - newdir1
+
+    - name: Change directory ownership, group and permissions
+      file:
+        path: /root/home/devops/{{ item }}
+        owner: root
+        group: root
+        mode: '0755'
+      with_items:
+            - newdir1
+            - newdir
+
+    - name: create the devops file if it does not exist
+      file:
+        path: /root/home/devops/{{ item }}
+        state: touch
+        owner: root
+        mode: '0644'
+      with_items:
+            - newfile1
+            - newfile
+
+    
+    - name: Change file ownership, group and permissions
+      file:
+        path: /root/home/devops/{{ item }}
+        owner: root
+        group: root
+        mode: '0644'
+      with_items:
+            - newfile1
+            - newfile
+
+    - name: Upgrade all system packages for CentOS/RHEL
+      yum:
+       name: "*"
+       state: latest
+       update_cache: true
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+    - name: Upgrade all system packages for Ubuntu/Debian
+      apt:
+       name: "*"
+       state: latest
+       update_cache: true
+       force_apt_get: true
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+    - name: Install httpd on CentOS
+      yum:
+       name: httpd
+       state: present
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+    - name: Install apache2 on Ubuntu/Debian
+      apt:
+       name: apache2
+       state: present
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+    - name: Start httpd on CentOS
+      service:
+       name: httpd
+       state: started
+       enabled: yes
+      when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+    - name: Start apache2 on Ubuntu/Debian
+      service:
+       name: apache2
+       state: started
+       enabled: yes
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+ 
+     
+  
